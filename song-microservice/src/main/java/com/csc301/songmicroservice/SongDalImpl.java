@@ -1,13 +1,11 @@
 package com.csc301.songmicroservice;
 
-import static com.mongodb.client.model.Filters.eq;
-import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 
 @Repository
 public class SongDalImpl implements SongDal {
@@ -19,41 +17,43 @@ public class SongDalImpl implements SongDal {
     this.db = mongoTemplate;
   }
 
-  // Method gets the collection to use for posts
-  private MongoCollection<Document> getCollection() {
-    try {
-      db.createCollection("songs");
-    } catch (Exception e) {
-    }
-    return db.getCollection("songs");
-  }
-
   @Override
   public DbQueryStatus addSong(Song songToAdd) {
-    // TODO Auto-generated method stub
-    return null;
+
+    DbQueryStatus dataToReturn;
+
+    try {
+      songToAdd.setId(new ObjectId());
+      db.insert(songToAdd);
+      dataToReturn = new DbQueryStatus("Search Successful", DbQueryExecResult.QUERY_OK);
+      dataToReturn.setData(songToAdd.getJsonRepresentation());
+      return dataToReturn;
+
+    } catch (Exception e) {
+      return new DbQueryStatus("Unable to add new song", DbQueryExecResult.QUERY_ERROR_GENERIC);
+    }
   }
 
   @Override
   public DbQueryStatus findSongById(String songId) {
 
     DbQueryStatus dataToReturn;
-    MongoCollection<Document> collection = getCollection();
-    MongoCursor<Document> iterator;
 
     try {
-      iterator = collection.find(eq("_id", new ObjectId(songId))).iterator();
+      Query query = new Query();
+      query.addCriteria(Criteria.where("_id").is(songId));
+      Song found = db.findOne(query, Song.class);
+      System.out.println(found);
+      if (found != null) {
+        dataToReturn = new DbQueryStatus("Search Successful", DbQueryExecResult.QUERY_OK);
+        dataToReturn.setData(found.getJsonRepresentation());
+        return dataToReturn;
+      }
+      return new DbQueryStatus("Song not Found", DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
+
     } catch (Exception e) {
-      return new DbQueryStatus("Invalid format for song id",
-          DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
+      return new DbQueryStatus("Could Not retrieve song", DbQueryExecResult.QUERY_ERROR_GENERIC);
     }
-
-    if (iterator.hasNext()) {
-      dataToReturn = new DbQueryStatus("Search successful", DbQueryExecResult.QUERY_OK);
-      dataToReturn.setData(iterator.next());
-    }
-
-    return new DbQueryStatus("Song not Found", DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
   }
 
   @Override
