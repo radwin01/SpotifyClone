@@ -23,7 +23,7 @@ public class SongDalImpl implements SongDal {
 
     try {
       db.insert(songToAdd);
-      dataToReturn = new DbQueryStatus("Search Successful", DbQueryExecResult.QUERY_OK);
+      dataToReturn = new DbQueryStatus("Add Successful", DbQueryExecResult.QUERY_OK);
       dataToReturn.setData(songToAdd.getJsonRepresentation());
       return dataToReturn;
 
@@ -41,7 +41,6 @@ public class SongDalImpl implements SongDal {
       Query query = new Query();
       query.addCriteria(Criteria.where("_id").is(songId));
       Song found = db.findOne(query, Song.class);
-      System.out.println(found);
       if (found != null) {
         dataToReturn = new DbQueryStatus("Search Successful", DbQueryExecResult.QUERY_OK);
         dataToReturn.setData(found.getJsonRepresentation());
@@ -92,7 +91,29 @@ public class SongDalImpl implements SongDal {
 
   @Override
   public DbQueryStatus updateSongFavouritesCount(String songId, boolean shouldDecrement) {
-    // TODO Auto-generated method stub
-    return null;
+    try {
+      long toAdd = 1;
+      if (shouldDecrement) {
+        toAdd = -1;
+      }
+      Query query = new Query();
+      query.addCriteria(Criteria.where("_id").is(songId));
+      Song found = db.findOne(query, Song.class);
+      if (found != null) {
+        toAdd = toAdd + found.getSongAmountFavourites();
+        if (toAdd >= 0) {
+          found.setSongAmountFavourites(toAdd);
+          db.findAndReplace(query, found);
+          return new DbQueryStatus("Update Successful", DbQueryExecResult.QUERY_OK);
+        }
+        return new DbQueryStatus("Cannot have negative favourites",
+            DbQueryExecResult.QUERY_ERROR_GENERIC);
+      }
+      return new DbQueryStatus("Song not Found", DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
+
+    } catch (Exception e) {
+      return new DbQueryStatus("Could Not decrement/increment favourites",
+          DbQueryExecResult.QUERY_ERROR_GENERIC);
+    }
   }
 }

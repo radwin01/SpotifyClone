@@ -154,6 +154,22 @@ public class SongController {
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("data", String.format("PUT %s", Utils.getUrl(request)));
 
+    boolean value = false;
+    if (shouldDecrement.equals("true")) {
+      value = true;
+    } else if (!(shouldDecrement.equals("false"))) {
+      response.put("message", "Invalid parameter: shouldDecrement only accepts true/false");
+      response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
+      return response;
+    } else {
+      value = false;
+    }
+    DbQueryStatus dbQueryStatus = songDal.updateSongFavouritesCount(songId, value);
+
+    response.put("message", dbQueryStatus.getMessage());
+    response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+        dbQueryStatus.getData());
+
     return response;
   }
 }
