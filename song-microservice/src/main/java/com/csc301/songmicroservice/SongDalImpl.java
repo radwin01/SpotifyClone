@@ -1,6 +1,5 @@
 package com.csc301.songmicroservice;
 
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -23,7 +22,6 @@ public class SongDalImpl implements SongDal {
     DbQueryStatus dataToReturn;
 
     try {
-      songToAdd.setId(new ObjectId());
       db.insert(songToAdd);
       dataToReturn = new DbQueryStatus("Search Successful", DbQueryExecResult.QUERY_OK);
       dataToReturn.setData(songToAdd.getJsonRepresentation());
@@ -64,7 +62,6 @@ public class SongDalImpl implements SongDal {
       Query query = new Query();
       query.addCriteria(Criteria.where("_id").is(songId));
       Song found = db.findOne(query, Song.class);
-      System.out.println(found);
       if (found != null) {
         dataToReturn = new DbQueryStatus("Search Successful", DbQueryExecResult.QUERY_OK);
         dataToReturn.setData(found.getSongName());
@@ -79,8 +76,18 @@ public class SongDalImpl implements SongDal {
 
   @Override
   public DbQueryStatus deleteSongById(String songId) {
-    // TODO Auto-generated method stub
-    return null;
+    try {
+      Query query = new Query();
+      query.addCriteria(Criteria.where("_id").is(songId));
+      Song found = db.findAndRemove(query, Song.class);
+      if (found != null) {
+        return new DbQueryStatus("Delete Successful", DbQueryExecResult.QUERY_OK);
+      }
+      return new DbQueryStatus("Song not Found", DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
+
+    } catch (Exception e) {
+      return new DbQueryStatus("Could Not delete song", DbQueryExecResult.QUERY_ERROR_GENERIC);
+    }
   }
 
   @Override
