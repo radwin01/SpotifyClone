@@ -38,8 +38,26 @@ public class PlaylistDriverImpl implements PlaylistDriver {
 
   @Override
   public DbQueryStatus deleteSongFromDb(String songId) {
+    try (Session session = driver.session()) {
+      boolean found = false;
+      try (Transaction tx = session.beginTransaction()) {
+        String line = "MATCH (a:song {songId:$y})\n DETACH DELETE(a) RETURN(a)";
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("y", songId);
+        if (tx.run(line, params).hasNext()) {
+          found = true;
+        }
 
-    return null;
+        tx.success();
+      }
+      session.close();
+      if (found) {
+        return new DbQueryStatus("Delete complete", DbQueryExecResult.QUERY_OK);
+      }
+      return new DbQueryStatus("Song not found", DbQueryExecResult.QUERY_OK);
+    } catch (Exception e) {
+      return new DbQueryStatus("Delete failed", DbQueryExecResult.QUERY_ERROR_GENERIC);
+    }
   }
 
   public DbQueryStatus addSongProfile(String songId) {
