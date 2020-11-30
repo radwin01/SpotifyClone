@@ -53,7 +53,15 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("POST %s", Utils.getUrl(request)));
 
-		return null;
+		// my addition
+	    DbQueryStatus dbQueryStatus = profileDriver.createUserProfile(params.get(KEY_USER_NAME), params.get(KEY_USER_FULLNAME), params.get(KEY_USER_PASSWORD));
+
+	    response.put("message", dbQueryStatus.getMessage());
+	    response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+	        dbQueryStatus.getData());
+
+	    return response;
+	    // end of my addition
 	}
 
 	@RequestMapping(value = "/followFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
@@ -63,7 +71,15 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 		
-		return null;
+	    // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.followFriend(userName, friendUserName);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
 	}
 
 	@RequestMapping(value = "/getAllFriendFavouriteSongTitles/{userName}", method = RequestMethod.GET)
@@ -73,7 +89,15 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-		return null;
+	    // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
 	}
 
 
@@ -84,7 +108,15 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-		return null;
+	    // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.unfollowFriend(userName, friendUserName);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
 	}
 
 	@RequestMapping(value = "/likeSong/{userName}/{songId}", method = RequestMethod.PUT)
@@ -94,7 +126,15 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-		return null;
+	    // my addition
+        DbQueryStatus dbQueryStatus = playlistDriver.likeSong(userName, songId);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
 	}
 
 	@RequestMapping(value = "/unlikeSong/{userName}/{songId}", method = RequestMethod.PUT)
@@ -104,7 +144,15 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-		return null;
+	    // my addition
+        DbQueryStatus dbQueryStatus = playlistDriver.unlikeSong(userName, songId);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
 	}
 
 	@RequestMapping(value = "/deleteAllSongsFromDb/{songId}", method = RequestMethod.PUT)
@@ -114,6 +162,14 @@ public class ProfileController {
 		Map<String, Object> response = new HashMap<String, Object>();
 		response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 		
-		return null;
+	    // my addition
+        DbQueryStatus dbQueryStatus = playlistDriver.deleteSongFromDb(songId);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
 	}
 }
