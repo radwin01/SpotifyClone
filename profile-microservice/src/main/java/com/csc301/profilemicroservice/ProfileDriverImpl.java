@@ -2,19 +2,13 @@ package com.csc301.profilemicroservice;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
 import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
-
-import org.springframework.stereotype.Repository;
-import com.sun.net.httpserver.HttpExchange;
 import org.neo4j.driver.v1.Transaction;
-
-import static org.neo4j.driver.v1.Values.parameters;
+import org.springframework.stereotype.Repository;
 
 
 @Repository
@@ -60,7 +54,7 @@ public class ProfileDriverImpl implements ProfileDriver {
 
 
           // check if a profile with username userName already exists
-          
+
           String query1 = "MATCH (p:profile) WHERE p.userName = $username RETURN p";
           StatementResult res1 = trans.run(query1, params);
           if (res1.hasNext()) {
@@ -71,10 +65,10 @@ public class ProfileDriverImpl implements ProfileDriver {
           String query2 =
               "CREATE (p:profile {userName: $username, fullName: $fullname, password: $password})";
           trans.run(query2, params);
-          
+
           String query3 = "MERGE (p:playlist {plName: $playlistName})";
           trans.run(query3, params);
-          
+
           String query4 =
               "MATCH (p:profile), (pl:playlist) WHERE p.userName = $username AND pl.plName = $playlistName CREATE (p)-[:created]->(pl)";
           trans.run(query4, params);
@@ -122,9 +116,9 @@ public class ProfileDriverImpl implements ProfileDriver {
           StatementResult res2 = trans.run(query2, params);
 
           if (res1.hasNext() && res2.hasNext()) {
-            
+
             // check if a connection between the two profiles already exists
-            
+
             String query =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername RETURN r";
             StatementResult res = trans.run(query, params);
@@ -137,11 +131,10 @@ public class ProfileDriverImpl implements ProfileDriver {
             String realQuery =
                 "MATCH (p:profile), (fp:profile) WHERE p.userName = $username AND fp.userName = $friendUsername CREATE (p)-[:follows]->(fp)";
             trans.run(realQuery, params);
-          
+
           } else {
-            return new DbQueryStatus(
-                "Could not follow. Make sure both usernames are valid!",
-                DbQueryExecResult.QUERY_ERROR_GENERIC);
+            return new DbQueryStatus("Could not follow. Make sure both usernames are valid!",
+                DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
           }
 
           trans.success();
@@ -185,25 +178,24 @@ public class ProfileDriverImpl implements ProfileDriver {
           StatementResult res2 = trans.run(query2, params);
 
           if (res1.hasNext() && res2.hasNext()) {
-            
+
             // check if a connection between the two profiles already does not exist
-            
+
             String query =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername RETURN r";
             StatementResult res = trans.run(query, params);
 
             if (!res.hasNext()) {
               return new DbQueryStatus("Cannot unfollow a user you haven't even followed!",
-                  DbQueryExecResult.QUERY_ERROR_GENERIC);
+                  DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
             }
 
             String realQuery =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername DELETE r";
             trans.run(realQuery, params);
           } else {
-            return new DbQueryStatus(
-                "Could not unfollow. Make sure both usernames are valid!",
-                DbQueryExecResult.QUERY_ERROR_GENERIC);
+            return new DbQueryStatus("Could not unfollow. Make sure both usernames are valid!",
+                DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
           }
 
           trans.success();
@@ -228,7 +220,7 @@ public class ProfileDriverImpl implements ProfileDriver {
 
   @Override
   public DbQueryStatus getAllSongFriendsLike(String userName) {
-    if (userName != "" ) {
+    if (userName != "") {
 
       try (Session session = ProfileMicroserviceApplication.driver.session()) {
 
@@ -241,37 +233,36 @@ public class ProfileDriverImpl implements ProfileDriver {
 
           String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
           StatementResult res1 = trans.run(query1, params);
-         
+
           if (res1.hasNext()) {
-            
+
             String query =
                 "MATCH (p:profile), (fp:profile), (s:song), ((p)-[r:follows]->(fp)), ((fp)-[r:includes]->(s)) WHERE p.userName = $username RETURN s";
             StatementResult res = trans.run(query, params);
             // Map<String, Object> resultMap = res.next().fields().get(0).value().asMap();
             HashMap<String, Object> returnMap = new HashMap<>();
             ArrayList<Object> songs = new ArrayList<>();
-            
+
             while (res.hasNext()) {
-              songs.add(res.next().fields().get(0).value().asMap().get("songId"));              
+              songs.add(res.next().fields().get(0).value().asMap().get("songId"));
             }
             returnMap.put("data", songs.toArray());
             returnMap.put("status", "ok");
             JSONObject json = new JSONObject(returnMap);
             String response = json.toString();
-          
+
             trans.success();
             session.close();
             DbQueryStatus ret = new DbQueryStatus("Success", DbQueryExecResult.QUERY_OK);
             ret.setData(response);
-            
+
             return ret;
-          
+
           } else {
-            return new DbQueryStatus(
-                "Error: Make sure the username entered is valid!",
+            return new DbQueryStatus("Error: Make sure the username entered is valid!",
                 DbQueryExecResult.QUERY_ERROR_GENERIC);
           }
-          
+
         } catch (Exception e) {
           return new DbQueryStatus("Oh no! Something went wrong in getting all friends' songs.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
