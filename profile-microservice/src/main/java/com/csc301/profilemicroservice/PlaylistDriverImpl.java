@@ -103,7 +103,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
             params.put("id", songId);
             params.put("playlistName", userName + "-favorites");
 
-            // check if both users exist in the db
+            // check if user and song exist in the db
 
             String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
             StatementResult res1 = trans.run(query1, params);
@@ -113,11 +113,12 @@ public class PlaylistDriverImpl implements PlaylistDriver {
 
             if (res1.hasNext() && res2.hasNext() ) {
               
-              // check if a connection between the two profiles already exists
+              // check if a connection between the user's playlist and the song already does not exist
+              
               String query =
                   "MATCH (pl:playlist), (s:song), ((pl)-[r:includes]->(s)) WHERE pl.plName = $playlistName AND s.songId = $id RETURN r";
               StatementResult res = trans.run(query, params);
-
+              
               if (!res.hasNext()) {
                 return new DbQueryStatus("Cannot unlike a song you already do not like!",
                     DbQueryExecResult.QUERY_ERROR_GENERIC);
