@@ -1,6 +1,5 @@
 package com.csc301.profilemicroservice;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -20,177 +19,181 @@ import okhttp3.RequestBody;
 @RestController
 @RequestMapping("/")
 public class ProfileController {
-    public static final String KEY_USER_NAME = "userName";
-    public static final String KEY_USER_FULLNAME = "fullName";
-    public static final String KEY_USER_PASSWORD = "password";
+  public static final String KEY_USER_NAME = "userName";
+  public static final String KEY_USER_FULLNAME = "fullName";
+  public static final String KEY_USER_PASSWORD = "password";
 
-    @Autowired
-    private final ProfileDriverImpl profileDriver;
+  @Autowired
+  private final ProfileDriverImpl profileDriver;
 
-    @Autowired
-    private final PlaylistDriverImpl playlistDriver;
+  @Autowired
+  private final PlaylistDriverImpl playlistDriver;
 
-    OkHttpClient client = new OkHttpClient();
+  OkHttpClient client = new OkHttpClient();
 
-    public ProfileController(ProfileDriverImpl profileDriver, PlaylistDriverImpl playlistDriver) {
-        this.profileDriver = profileDriver;
-        this.playlistDriver = playlistDriver;
+  public ProfileController(ProfileDriverImpl profileDriver, PlaylistDriverImpl playlistDriver) {
+    this.profileDriver = profileDriver;
+    this.playlistDriver = playlistDriver;
+  }
+
+  @RequestMapping(value = "/profile", method = RequestMethod.POST)
+  public @ResponseBody Map<String, Object> addProfile(@RequestParam Map<String, String> params,
+      HttpServletRequest request) {
+
+    Map<String, Object> response = new HashMap<String, Object>();
+    response.put("path", String.format("POST %s", Utils.getUrl(request)));
+    if (params.containsKey("userName") && params.containsKey("fullName")
+        && params.containsKey("password")) {
+      DbQueryStatus dbQueryStatus = profileDriver.createUserProfile(params.get(KEY_USER_NAME),
+          params.get(KEY_USER_FULLNAME), params.get(KEY_USER_PASSWORD));
+
+      response.put("message", dbQueryStatus.getMessage());
+      response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+          dbQueryStatus.getData());
+    } else {
+      response.put("message", "Invalid parameters given for addProfile");
+      response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
     }
 
-    @RequestMapping(value = "/profile", method = RequestMethod.POST)
-    public @ResponseBody Map<String, Object> addProfile(@RequestParam Map<String, String> params,
-            HttpServletRequest request) {
+    return response;
+    // end of my addition
+  }
 
-        Map<String, Object> response = new HashMap<String, Object>();
-        response.put("path", String.format("POST %s", Utils.getUrl(request)));
+  @RequestMapping(value = "/followFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
+  public @ResponseBody Map<String, Object> followFriend(@PathVariable("userName") String userName,
+      @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
 
-        // my addition
-        DbQueryStatus dbQueryStatus = profileDriver.createUserProfile(params.get(KEY_USER_NAME), params.get(KEY_USER_FULLNAME), params.get(KEY_USER_PASSWORD));
+    Map<String, Object> response = new HashMap<String, Object>();
+    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-        response.put("message", dbQueryStatus.getMessage());
-        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData());
+    // my addition
+    DbQueryStatus dbQueryStatus = profileDriver.followFriend(userName, friendUserName);
+    response.put("message", dbQueryStatus.getMessage());
+    response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+        dbQueryStatus.getData());
+    return response;
+    // end of my addition
+  }
 
-        return response;
-        // end of my addition
+  @RequestMapping(value = "/getAllFriendFavouriteSongTitles/{userName}", method = RequestMethod.GET)
+  public @ResponseBody Map<String, Object> getAllFriendFavouriteSongTitles(
+      @PathVariable("userName") String userName, HttpServletRequest request) {
+
+    Map<String, Object> response = new HashMap<String, Object>();
+    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+
+    // my addition
+    DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
+    response.put("message", dbQueryStatus.getMessage());
+    response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+        dbQueryStatus.getData());
+
+    if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+      HttpUrl.Builder urlBuilder =
+          HttpUrl.parse("http://localhost:3001/" + "/getSongTitleById/" + userName.toString())
+              .newBuilder();
+      String url = urlBuilder.build().toString();
+      RequestBody body = RequestBody.create(new byte[0], null);
+
+      Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+
+      Call call = client.newCall(newRequest);
+
     }
-  
-   @RequestMapping(value = "/followFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
-    public @ResponseBody Map<String, Object> followFriend(@PathVariable("userName") String userName,
-            @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
+    return response;
+    // end of my addition
+  }
 
-        Map<String, Object> response = new HashMap<String, Object>();
-        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
-        
-        // my addition
-        DbQueryStatus dbQueryStatus = profileDriver.followFriend(userName, friendUserName);
-        response.put("message", dbQueryStatus.getMessage());
-        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData());
-        return response;
-        // end of my addition
+  @RequestMapping(value = "/unfollowFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
+  public @ResponseBody Map<String, Object> unfollowFriend(@PathVariable("userName") String userName,
+      @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
+
+    Map<String, Object> response = new HashMap<String, Object>();
+    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+
+    // my addition
+    DbQueryStatus dbQueryStatus = profileDriver.unfollowFriend(userName, friendUserName);
+
+    response.put("message", dbQueryStatus.getMessage());
+    response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+        dbQueryStatus.getData());
+
+    return response;
+    // end of my addition
+  }
+
+  @RequestMapping(value = "/likeSong/{userName}/{songId}", method = RequestMethod.PUT)
+  public @ResponseBody Map<String, Object> likeSong(@PathVariable("userName") String userName,
+      @PathVariable("songId") String songId, HttpServletRequest request) {
+
+    Map<String, Object> response = new HashMap<String, Object>();
+    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+
+    try {
+      DbQueryStatus dbQueryStatus = playlistDriver.likeSong(userName, songId);
+
+      if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+        HttpUrl.Builder urlBuilder = HttpUrl
+            .parse("http://localhost:3001" + "/updateSongFavouritesCount/" + songId).newBuilder();
+        String url = urlBuilder.build().toString();
+        urlBuilder.addQueryParameter("shouldDecrement", "false");
+        RequestBody body = RequestBody.create(new byte[0], null);
+
+        Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+
+        Call call = client.newCall(newRequest);
+        call.execute();
+      } else if (dbQueryStatus.getdbQueryExecResult()
+          .equals(DbQueryExecResult.QUERY_ERROR_NOT_FOUND)) {
+        dbQueryStatus.setdbQueryExecResult(DbQueryExecResult.QUERY_OK);
+      }
+      response.put("message", dbQueryStatus.getMessage());
+      response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+          dbQueryStatus.getData());
+
+    } catch (Exception e) {
+      response.put("message", "Failed to like song");
+      response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
     }
 
-    @RequestMapping(value = "/getAllFriendFavouriteSongTitles/{userName}", method = RequestMethod.GET)
-    public @ResponseBody Map<String, Object> getAllFriendFavouriteSongTitles(@PathVariable("userName") String userName,
-            HttpServletRequest request) {
+    return response;
+    // end of my addition
+  }
 
-        Map<String, Object> response = new HashMap<String, Object>();
-        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+  @RequestMapping(value = "/unlikeSong/{userName}/{songId}", method = RequestMethod.PUT)
+  public @ResponseBody Map<String, Object> unlikeSong(@PathVariable("userName") String userName,
+      @PathVariable("songId") String songId, HttpServletRequest request) {
 
-        // my addition
-        DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
-        response.put("message", dbQueryStatus.getMessage());
-        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData());
-        
-        if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
-          HttpUrl.Builder urlBuilder =
-              HttpUrl.parse("http://localhost:3001/" + "/getSongTitleById/" + userName.toString()).newBuilder();
-          String url = urlBuilder.build().toString();
-          RequestBody body = RequestBody.create(new byte[0], null);
+    Map<String, Object> response = new HashMap<String, Object>();
+    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-          Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+    try {
+      DbQueryStatus dbQueryStatus = playlistDriver.unlikeSong(userName, songId);
 
-          Call call = client.newCall(newRequest);
-          
-          try {
-            call.execute();
-          } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
-        }
-        return response;
-        // end of my addition
-    }
-    
-    @RequestMapping(value = "/unfollowFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
-    public @ResponseBody Map<String, Object> unfollowFriend(@PathVariable("userName") String userName,
-            @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
+      if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+        HttpUrl.Builder urlBuilder = HttpUrl
+            .parse("http://localhost:3001" + "/updateSongFavouritesCount/" + songId).newBuilder();
+        String url = urlBuilder.build().toString();
+        urlBuilder.addQueryParameter("shouldDecrement", "true");
+        RequestBody body = RequestBody.create(new byte[0], null);
 
-        Map<String, Object> response = new HashMap<String, Object>();
-        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+        Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
 
-        // my addition
-        DbQueryStatus dbQueryStatus = profileDriver.unfollowFriend(userName, friendUserName);
+        Call call = client.newCall(newRequest);
+        call.execute();
+      }
+      response.put("message", dbQueryStatus.getMessage());
+      response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+          dbQueryStatus.getData());
 
-        response.put("message", dbQueryStatus.getMessage());
-        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData());
-
-        return response;
-        // end of my addition
+    } catch (Exception e) {
+      response.put("message", "Failed to unlike song");
+      response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
     }
 
-    @RequestMapping(value = "/likeSong/{userName}/{songId}", method = RequestMethod.PUT)
-    public @ResponseBody Map<String, Object> likeSong(@PathVariable("userName") String userName,
-            @PathVariable("songId") String songId, HttpServletRequest request) {
-
-        Map<String, Object> response = new HashMap<String, Object>();
-        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
-
-        // my addition
-        DbQueryStatus dbQueryStatus = playlistDriver.likeSong(userName, songId);
-
-        response.put("message", dbQueryStatus.getMessage());
-        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData()); 
-        
-        if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
-          HttpUrl.Builder urlBuilder =
-              HttpUrl.parse("http://localhost:3001/" + "/addSong/" + songId.toString()).newBuilder();
-          String url = urlBuilder.build().toString();
-          RequestBody body = RequestBody.create(new byte[0], null);
-
-          Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
-
-          Call call = client.newCall(newRequest);
-          try {
-            call.execute();
-          } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
-        }
-
-        return response;
-        // end of my addition
-    }
-    @RequestMapping(value = "/unlikeSong/{userName}/{songId}", method = RequestMethod.PUT)
-    public @ResponseBody Map<String, Object> unlikeSong(@PathVariable("userName") String userName,
-            @PathVariable("songId") String songId, HttpServletRequest request) {
-
-        Map<String, Object> response = new HashMap<String, Object>();
-        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
-
-        // my addition
-        DbQueryStatus dbQueryStatus = playlistDriver.unlikeSong(userName, songId);
-
-        response.put("message", dbQueryStatus.getMessage());
-        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData());
-
-        if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
-          HttpUrl.Builder urlBuilder =
-              HttpUrl.parse("http://localhost:3001/" + "/deleteSongById/" + songId.toString()).newBuilder();
-          String url = urlBuilder.build().toString();
-          RequestBody body = RequestBody.create(new byte[0], null);
-
-          Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
-
-          Call call = client.newCall(newRequest);
-          try {
-            call.execute();
-          } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
-        }
-
-        return response;
-        // end of my addition
-    }
+    return response;
+    // end of my addition
+  }
 
   @RequestMapping(value = "/deleteAllSongsFromDb/{songId}", method = RequestMethod.PUT)
   public @ResponseBody Map<String, Object> deleteAllSongsFromDb(
