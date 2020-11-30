@@ -1,6 +1,5 @@
 package com.csc301.profilemicroservice;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -100,12 +99,6 @@ public class ProfileController {
 
       Call call = client.newCall(newRequest);
 
-      try {
-        call.execute();
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
     }
     return response;
     // end of my addition
