@@ -178,21 +178,22 @@ public class ProfileDriverImpl implements ProfileDriver {
 
           // check if both users exist in the db
 
-          String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
+          String query1 = "MATCH (p:profile) WHERE p.userName = $username RETURN p";
           StatementResult res1 = trans.run(query1, params);
 
-          String query2 = "MATCH (p:profile) WHERE p.userName = $friendUsername return p";
+          String query2 = "MATCH (p:profile) WHERE p.userName = $friendUsername RETURN p";
           StatementResult res2 = trans.run(query2, params);
 
           if (res1.hasNext() && res2.hasNext()) {
             
-            // check if a connection between the two profiles already exists
+            // check if a connection between the two profiles already does not exist
+            
             String query =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername RETURN r";
             StatementResult res = trans.run(query, params);
 
             if (!res.hasNext()) {
-              return new DbQueryStatus("Cannot unfollow a user you haven't followed!",
+              return new DbQueryStatus("Cannot unfollow a user you haven't even followed!",
                   DbQueryExecResult.QUERY_ERROR_GENERIC);
             }
 

@@ -80,7 +80,6 @@ public class ProfileController {
 
         // my addition
         DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
-
         response.put("message", dbQueryStatus.getMessage());
         response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
             dbQueryStatus.getData());
@@ -94,6 +93,7 @@ public class ProfileController {
           Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
 
           Call call = client.newCall(newRequest);
+          
           try {
             call.execute();
           } catch (IOException e) {
@@ -101,7 +101,6 @@ public class ProfileController {
             e.printStackTrace();
           }
         }
-
         return response;
         // end of my addition
     }
