@@ -1,5 +1,6 @@
 package com.csc301.profilemicroservice;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -10,7 +11,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import okhttp3.Call;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 
 @RestController
 @RequestMapping("/")
@@ -81,10 +86,28 @@ public class ProfileController {
         response.put("message", dbQueryStatus.getMessage());
         response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
             dbQueryStatus.getData());
+        
+        if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+          HttpUrl.Builder urlBuilder =
+              HttpUrl.parse("http://localhost:3001/" + "/getSongTitleById/" + userName.toString()).newBuilder();
+          String url = urlBuilder.build().toString();
+          RequestBody body = RequestBody.create(new byte[0], null);
+
+          Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+
+          Call call = client.newCall(newRequest);
+          try {
+            call.execute();
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+        }
 
         return response;
         // end of my addition
     }
+    
     @RequestMapping(value = "/unfollowFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
     public @ResponseBody Map<String, Object> unfollowFriend(@PathVariable("userName") String userName,
             @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
@@ -115,7 +138,24 @@ public class ProfileController {
 
         response.put("message", dbQueryStatus.getMessage());
         response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-            dbQueryStatus.getData());
+            dbQueryStatus.getData()); 
+        
+        if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+          HttpUrl.Builder urlBuilder =
+              HttpUrl.parse("http://localhost:3001/" + "/addSong/" + songId.toString()).newBuilder();
+          String url = urlBuilder.build().toString();
+          RequestBody body = RequestBody.create(new byte[0], null);
+
+          Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+
+          Call call = client.newCall(newRequest);
+          try {
+            call.execute();
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+        }
 
         return response;
         // end of my addition
@@ -133,6 +173,23 @@ public class ProfileController {
         response.put("message", dbQueryStatus.getMessage());
         response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
             dbQueryStatus.getData());
+
+        if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+          HttpUrl.Builder urlBuilder =
+              HttpUrl.parse("http://localhost:3001/" + "/deleteSongById/" + songId.toString()).newBuilder();
+          String url = urlBuilder.build().toString();
+          RequestBody body = RequestBody.create(new byte[0], null);
+
+          Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+
+          Call call = client.newCall(newRequest);
+          try {
+            call.execute();
+          } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+        }
 
         return response;
         // end of my addition

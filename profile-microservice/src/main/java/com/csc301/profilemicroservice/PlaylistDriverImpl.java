@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
 import org.springframework.stereotype.Repository;
 
@@ -36,53 +37,54 @@ public class PlaylistDriverImpl implements PlaylistDriver {
 
 	          Map<String, Object> params = new HashMap<String, Object>();
 	          params.put("username", userName);
-	          params.put("songID", songId);
+	          params.put("id", songId);
+	          params.put("playlistName", userName + "-favorites");
 
 	          // check if both users exist in the db
 
-	          String firstQuery = "MATCH (p:profile) WHERE p.userName = $username return p";
-	          StatementResult res1 = trans.run(firstQuery, params);
+	          String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
+	          StatementResult res1 = trans.run(query1, params);
+	          
+	          String query2 = "MATCH (s:song) WHERE s.songId = $id return s";
+              StatementResult res2 = trans.run(query2, params);
 
-	          String secondQuery = "MATCH (p:profile) WHERE p.userName = $friendUsername return p";
-	          StatementResult res2 = trans.run(secondQuery, params);
-
-	          if (res1.hasNext() && res2.hasNext()) {
+	          if (res1.hasNext() && res2.hasNext() ) {
 	            
 	            // check if a connection between the two profiles already exists
 	            String query =
-	                "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername RETURN r";
+	                "MATCH (pl:playlist), (s:song), ((pl)-[r:includes]->(s)) WHERE pl.plName = $playlistName AND s.songId = $id RETURN r";
 	            StatementResult res = trans.run(query, params);
 
 	            if (res.hasNext()) {
-	              return new DbQueryStatus("You already follow this user!",
+	              return new DbQueryStatus("You already like this song!",
 	                  DbQueryExecResult.QUERY_ERROR_GENERIC);
 	            }
 
 	            String realQuery =
-	                "MATCH (p:profile), (fp:profile) WHERE p.userName = $username AND fp.userName = $friendUsername CREATE (p)-[:follows]->(fp)";
+	                "MATCH (pl:playlist), (s:song) WHERE pl.plName = $playlistName AND s.songId = $id CREATE (pl)-[:includes]->(s)";
 	            trans.run(realQuery, params);
 	          } else {
 	            return new DbQueryStatus(
-	                "Could not follow. Make sure both usernames are valid!",
+	                "Could not add song. Make sure the profile and song are both valid!",
 	                DbQueryExecResult.QUERY_ERROR_GENERIC);
 	          }
 
 	          trans.success();
 	          session.close();
-	          return new DbQueryStatus("You now follow this user.", DbQueryExecResult.QUERY_OK);
+	          return new DbQueryStatus("Song has been successfully liked.", DbQueryExecResult.QUERY_OK);
 
 	        } catch (Exception e) {
-	          return new DbQueryStatus("Oh no! Something went wrong in following this user.",
+	          return new DbQueryStatus("Oh no! Something went wrong in liking this song.",
 	              DbQueryExecResult.QUERY_ERROR_GENERIC);
 	        }
 
 	      } catch (Exception e) {
-	        return new DbQueryStatus("Oops! omething went wrong in following this user.",
+	        return new DbQueryStatus("Oops! Something went wrong in liking this song.",
 	            DbQueryExecResult.QUERY_ERROR_GENERIC);
 	      }
 
 	    } else {
-	      return new DbQueryStatus("Could not follow! Make sure all parameters are filled.",
+	      return new DbQueryStatus("Could not like song! Make sure all parameters are filled.",
 	          DbQueryExecResult.QUERY_ERROR_GENERIC);
 	    }
 	}
@@ -90,8 +92,65 @@ public class PlaylistDriverImpl implements PlaylistDriver {
 	@Override
 	public DbQueryStatus unlikeSong(String userName, String songId) {
 		
-		return null;
-	}
+      if (userName != "" && songId != "") {
+
+        try (Session session = ProfileMicroserviceApplication.driver.session()) {
+
+          try (Transaction trans = session.beginTransaction()) {
+
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("username", userName);
+            params.put("id", songId);
+            params.put("playlistName", userName + "-favorites");
+
+            // check if both users exist in the db
+
+            String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
+            StatementResult res1 = trans.run(query1, params);
+            
+            String query2 = "MATCH (s:song) WHERE s.songId = $id return s";
+            StatementResult res2 = trans.run(query2, params);
+
+            if (res1.hasNext() && res2.hasNext() ) {
+              
+              // check if a connection between the two profiles already exists
+              String query =
+                  "MATCH (pl:playlist), (s:song), ((pl)-[r:includes]->(s)) WHERE pl.plName = $playlistName AND s.songId = $id RETURN r";
+              StatementResult res = trans.run(query, params);
+
+              if (!res.hasNext()) {
+                return new DbQueryStatus("Cannot unlike a song you already do not like!",
+                    DbQueryExecResult.QUERY_ERROR_GENERIC);
+              }
+
+              String realQuery =
+                  "MATCH (pl:playlist), (s:song), ((pl)-[r:includes]->(s)) WHERE pl.plName = $playlistName AND s.songId = $id DELETE r";
+              trans.run(realQuery, params);
+            } else {
+              return new DbQueryStatus(
+                  "Could not unlike song. Make sure the profile and song are both valid!",
+                  DbQueryExecResult.QUERY_ERROR_GENERIC);
+            }
+
+            trans.success();
+            session.close();
+            return new DbQueryStatus("Song has been successfully unliked.", DbQueryExecResult.QUERY_OK);
+
+          } catch (Exception e) {
+            return new DbQueryStatus("Oh no! Something went wrong in unliking this song.",
+                DbQueryExecResult.QUERY_ERROR_GENERIC);
+          }
+
+        } catch (Exception e) {
+          return new DbQueryStatus("Oops! Something went wrong in unliking this song.",
+              DbQueryExecResult.QUERY_ERROR_GENERIC);
+        }
+
+      } else {
+        return new DbQueryStatus("Could not unlike song! Make sure all parameters are filled.",
+            DbQueryExecResult.QUERY_ERROR_GENERIC);
+      }
+  }
 
   @Override
   public DbQueryStatus deleteSongFromDb(String songId) {
@@ -104,7 +163,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
         if (tx.run(line, params).hasNext()) {
           found = true;
         }
-
+        
         tx.success();
       }
       session.close();
