@@ -4,9 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
-import org.springframework.stereotype.Repository;
 import org.neo4j.driver.v1.Transaction;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class PlaylistDriverImpl implements PlaylistDriver {
@@ -94,9 +93,43 @@ public class PlaylistDriverImpl implements PlaylistDriver {
 		return null;
 	}
 
-	@Override
-	public DbQueryStatus deleteSongFromDb(String songId) {
-		
-		return null;
-	}
+  @Override
+  public DbQueryStatus deleteSongFromDb(String songId) {
+    try (Session session = driver.session()) {
+      boolean found = false;
+      try (Transaction tx = session.beginTransaction()) {
+        String line = "MATCH (a:song {songId:$y})\n DETACH DELETE(a) RETURN(a)";
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("y", songId);
+        if (tx.run(line, params).hasNext()) {
+          found = true;
+        }
+
+        tx.success();
+      }
+      session.close();
+      if (found) {
+        return new DbQueryStatus("Delete complete", DbQueryExecResult.QUERY_OK);
+      }
+      return new DbQueryStatus("Song not found", DbQueryExecResult.QUERY_OK);
+    } catch (Exception e) {
+      return new DbQueryStatus("Delete failed", DbQueryExecResult.QUERY_ERROR_GENERIC);
+    }
+  }
+
+  public DbQueryStatus addSongProfile(String songId) {
+    try (Session session = driver.session()) {
+      try (Transaction tx = session.beginTransaction()) {
+        String line = "MERGE (a:song {songId:$y})";
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("y", songId);
+        tx.run(line, params);
+        tx.success();
+      }
+      session.close();
+      return new DbQueryStatus("Add complete", DbQueryExecResult.QUERY_OK);
+    } catch (Exception e) {
+      return new DbQueryStatus("Add failed", DbQueryExecResult.QUERY_ERROR_GENERIC);
+    }
+  }
 }
