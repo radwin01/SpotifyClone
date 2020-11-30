@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.json.JSONObject;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
@@ -148,7 +149,7 @@ public class ProfileDriverImpl implements ProfileDriver {
         }
 
       } catch (Exception e) {
-        return new DbQueryStatus("Oops! omething went wrong in following this user.",
+        return new DbQueryStatus("Oops! Something went wrong in following this user.",
             DbQueryExecResult.QUERY_ERROR_GENERIC);
       }
 
@@ -209,7 +210,7 @@ public class ProfileDriverImpl implements ProfileDriver {
         }
 
       } catch (Exception e) {
-        return new DbQueryStatus("Oops! omething went wrong in unfollowing this user.",
+        return new DbQueryStatus("Oops! Something went wrong in unfollowing this user.",
             DbQueryExecResult.QUERY_ERROR_GENERIC);
       }
 
@@ -221,8 +222,7 @@ public class ProfileDriverImpl implements ProfileDriver {
 
   @Override
   public DbQueryStatus getAllSongFriendsLike(String userName) {
-
-    if (userName != "") {
+    if (userName != "" ) {
 
       try (Session session = ProfileMicroserviceApplication.driver.session()) {
 
@@ -230,50 +230,54 @@ public class ProfileDriverImpl implements ProfileDriver {
 
           Map<String, Object> params = new HashMap<String, Object>();
           params.put("username", userName);
-       
+
           // check if user exist in the db
 
-          String firstQuery = "MATCH (p:profile) WHERE p.userName = $username return p";
-          StatementResult res1 = trans.run(firstQuery, params);
-
+          String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
+          StatementResult res1 = trans.run(query1, params);
+         
           if (res1.hasNext()) {
             
-            // check if a connection between the two profiles already exists
             String query =
-                "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username RETURN fp";
+                "MATCH (p:profile), (fp:profile), (s:song), ((p)-[r:follows]->(fp)), ((fp)-[r:includes]->(s)) WHERE p.userName = $username RETURN s";
             StatementResult res = trans.run(query, params);
-
-            while (res.hasNext()) {
-              
-              String ret = "";
-              ret += res.toString();
-              
-              return new DbQueryStatus(ret,
-                  DbQueryExecResult.QUERY_ERROR_GENERIC);
-            }
+            // Map<String, Object> resultMap = res.next().fields().get(0).value().asMap();
+            HashMap<String, Object> returnMap = new HashMap<>();
+            ArrayList<Object> songs = new ArrayList<>();
             
+            while (res.hasNext()) {
+              songs.add(res.next().fields().get(0).value().asMap().get("songId"));              
+            }
+            returnMap.put("data", songs.toArray());
+            returnMap.put("status", "ok");
+            JSONObject json = new JSONObject(returnMap);
+            String response = json.toString();
+          
+            trans.success();
+            session.close();
+            DbQueryStatus ret = new DbQueryStatus("Success", DbQueryExecResult.QUERY_OK);
+            ret.setData(response);
+            
+            return ret;
+          
           } else {
             return new DbQueryStatus(
-                "Could not follow. Make sure both usernames are valid!",
+                "Error: Make sure the username entered is valid!",
                 DbQueryExecResult.QUERY_ERROR_GENERIC);
           }
-
-          trans.success();
-          session.close();
-          return new DbQueryStatus("You now follow this user.", DbQueryExecResult.QUERY_OK);
-
+          
         } catch (Exception e) {
-          return new DbQueryStatus("Oh no! Something went wrong in following this user.",
+          return new DbQueryStatus("Oh no! Something went wrong in getting all friends' songs.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
         }
 
       } catch (Exception e) {
-        return new DbQueryStatus("Oops! omething went wrong in following this user.",
+        return new DbQueryStatus("Oops! Something went wrong in getting all friends' songs.",
             DbQueryExecResult.QUERY_ERROR_GENERIC);
       }
 
     } else {
-      return new DbQueryStatus("Could not follow! Make sure all parameters are filled.",
+      return new DbQueryStatus("Error: Make sure all parameters are filled.",
           DbQueryExecResult.QUERY_ERROR_GENERIC);
     }
   }
