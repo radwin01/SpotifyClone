@@ -60,7 +60,8 @@ public class ProfileDriverImpl implements ProfileDriver {
 
 
           // check if a profile with username userName already exists
-          String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
+          
+          String query1 = "MATCH (p:profile) WHERE p.userName = $username RETURN p";
           StatementResult res1 = trans.run(query1, params);
           if (res1.hasNext()) {
             return new DbQueryStatus("A profile with that username already exists.",
@@ -70,8 +71,10 @@ public class ProfileDriverImpl implements ProfileDriver {
           String query2 =
               "CREATE (p:profile {userName: $username, fullName: $fullname, password: $password})";
           trans.run(query2, params);
+          
           String query3 = "MERGE (p:playlist {plName: $playlistName})";
           trans.run(query3, params);
+          
           String query4 =
               "MATCH (p:profile), (pl:playlist) WHERE p.userName = $username AND pl.plName = $playlistName CREATE (p)-[:created]->(pl)";
           trans.run(query4, params);
@@ -112,15 +115,16 @@ public class ProfileDriverImpl implements ProfileDriver {
 
           // check if both users exist in the db
 
-          String query1 = "MATCH (p:profile) WHERE p.userName = $username return p";
+          String query1 = "MATCH (p:profile) WHERE p.userName = $username RETURN p";
           StatementResult res1 = trans.run(query1, params);
 
-          String query2 = "MATCH (p:profile) WHERE p.userName = $friendUsername return p";
+          String query2 = "MATCH (p:profile) WHERE p.userName = $friendUsername RETURN p";
           StatementResult res2 = trans.run(query2, params);
 
           if (res1.hasNext() && res2.hasNext()) {
             
             // check if a connection between the two profiles already exists
+            
             String query =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername RETURN r";
             StatementResult res = trans.run(query, params);
@@ -133,6 +137,7 @@ public class ProfileDriverImpl implements ProfileDriver {
             String realQuery =
                 "MATCH (p:profile), (fp:profile) WHERE p.userName = $username AND fp.userName = $friendUsername CREATE (p)-[:follows]->(fp)";
             trans.run(realQuery, params);
+          
           } else {
             return new DbQueryStatus(
                 "Could not follow. Make sure both usernames are valid!",
