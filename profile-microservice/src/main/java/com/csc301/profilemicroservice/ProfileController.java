@@ -64,11 +64,9 @@ public class ProfileController {
         
         // my addition
         DbQueryStatus dbQueryStatus = profileDriver.followFriend(userName, friendUserName);
-
         response.put("message", dbQueryStatus.getMessage());
         response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
             dbQueryStatus.getData());
-
         return response;
         // end of my addition
     }
