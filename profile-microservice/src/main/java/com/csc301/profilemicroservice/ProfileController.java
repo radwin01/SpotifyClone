@@ -1,5 +1,6 @@
 package com.csc301.profilemicroservice;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -10,11 +11,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 
 @RestController
 @RequestMapping("/")
@@ -82,26 +85,56 @@ public class ProfileController {
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-    // my addition
-    DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
-    response.put("message", dbQueryStatus.getMessage());
-    response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
-        dbQueryStatus.getData());
+    try {
+      DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
 
-    if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
-      HttpUrl.Builder urlBuilder =
-          HttpUrl.parse("http://localhost:3001/" + "/getSongTitleById/" + userName.toString())
-              .newBuilder();
-      String url = urlBuilder.build().toString();
-      RequestBody body = RequestBody.create(new byte[0], null);
+      if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
+        ObjectMapper dataMap = new ObjectMapper();
+        Map<String, Object> dataResult = dataMap.convertValue(dbQueryStatus, Map.class);
+        HashMap<String, Object> returnMap = new HashMap<>();
+        Map<String, Object> responseMap;
+        ArrayList<String> songs;
+        for (String s : dataResult.keySet()) {
+          songs = new ArrayList<>();
+          String songString = dataResult.get(s).toString();
+          String[] songList = songString.substring(1, songString.length() - 1).split(", ");
+          for (String d : songList) {
+            HttpUrl.Builder urlBuilder =
+                HttpUrl.parse("http://localhost:3001" + "/getSongTitleFromId/" + d).newBuilder();
+            String url = urlBuilder.build().toString();
+            RequestBody body = RequestBody.create(new byte[0], null);
 
-      Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+            Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
 
-      Call call = client.newCall(newRequest);
+            Call call = client.newCall(newRequest);
+            Response responseFromMongo = call.execute();
+            responseMap = dataMap.convertValue(responseFromMongo, Map.class);
+            if (responseMap.get("status").toString().equals("OK")) {
+              songs.add(responseMap.get("data").toString());
 
+            } else {
+              response.put("message", d + " was not found in MongoDb");
+              response =
+                  Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
+              return response;
+            }
+          }
+          returnMap.put(s, songs.toArray());
+        }
+        response.put("message", "Retrieval Successful");
+        response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_OK, returnMap);
+      }
+      response.put("message", dbQueryStatus.getMessage());
+      response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+          dbQueryStatus.getData());
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      response.put("message", "Failed to get all songs friends like");
+      response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
     }
+
     return response;
-    // end of my addition
   }
 
   @RequestMapping(value = "/unfollowFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
