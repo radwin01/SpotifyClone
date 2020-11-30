@@ -15,83 +15,128 @@ import okhttp3.OkHttpClient;
 @RestController
 @RequestMapping("/")
 public class ProfileController {
-  public static final String KEY_USER_NAME = "userName";
-  public static final String KEY_USER_FULLNAME = "fullName";
-  public static final String KEY_USER_PASSWORD = "password";
+    public static final String KEY_USER_NAME = "userName";
+    public static final String KEY_USER_FULLNAME = "fullName";
+    public static final String KEY_USER_PASSWORD = "password";
 
-  @Autowired
-  private final ProfileDriverImpl profileDriver;
+    @Autowired
+    private final ProfileDriverImpl profileDriver;
 
-  @Autowired
-  private final PlaylistDriverImpl playlistDriver;
+    @Autowired
+    private final PlaylistDriverImpl playlistDriver;
 
-  OkHttpClient client = new OkHttpClient();
+    OkHttpClient client = new OkHttpClient();
 
-  public ProfileController(ProfileDriverImpl profileDriver, PlaylistDriverImpl playlistDriver) {
-    this.profileDriver = profileDriver;
-    this.playlistDriver = playlistDriver;
-  }
+    public ProfileController(ProfileDriverImpl profileDriver, PlaylistDriverImpl playlistDriver) {
+        this.profileDriver = profileDriver;
+        this.playlistDriver = playlistDriver;
+    }
 
-  @RequestMapping(value = "/profile", method = RequestMethod.POST)
-  public @ResponseBody Map<String, Object> addProfile(@RequestParam Map<String, String> params,
-      HttpServletRequest request) {
+    @RequestMapping(value = "/profile", method = RequestMethod.POST)
+    public @ResponseBody Map<String, Object> addProfile(@RequestParam Map<String, String> params,
+            HttpServletRequest request) {
 
-    Map<String, Object> response = new HashMap<String, Object>();
-    response.put("path", String.format("POST %s", Utils.getUrl(request)));
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("path", String.format("POST %s", Utils.getUrl(request)));
 
-    return null;
-  }
+        // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.createUserProfile(params.get(KEY_USER_NAME), params.get(KEY_USER_FULLNAME), params.get(KEY_USER_PASSWORD));
 
-  @RequestMapping(value = "/followFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
-  public @ResponseBody Map<String, Object> followFriend(@PathVariable("userName") String userName,
-      @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
 
-    Map<String, Object> response = new HashMap<String, Object>();
-    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+        return response;
+        // end of my addition
+    }
+  
+   @RequestMapping(value = "/followFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
+    public @ResponseBody Map<String, Object> followFriend(@PathVariable("userName") String userName,
+            @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
 
-    return null;
-  }
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+        
+        // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.followFriend(userName, friendUserName);
 
-  @RequestMapping(value = "/getAllFriendFavouriteSongTitles/{userName}", method = RequestMethod.GET)
-  public @ResponseBody Map<String, Object> getAllFriendFavouriteSongTitles(
-      @PathVariable("userName") String userName, HttpServletRequest request) {
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
 
-    Map<String, Object> response = new HashMap<String, Object>();
-    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+        return response;
+        // end of my addition
+    }
 
-    return null;
-  }
+    @RequestMapping(value = "/getAllFriendFavouriteSongTitles/{userName}", method = RequestMethod.GET)
+    public @ResponseBody Map<String, Object> getAllFriendFavouriteSongTitles(@PathVariable("userName") String userName,
+            HttpServletRequest request) {
 
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-  @RequestMapping(value = "/unfollowFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
-  public @ResponseBody Map<String, Object> unfollowFriend(@PathVariable("userName") String userName,
-      @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
+        // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
 
-    Map<String, Object> response = new HashMap<String, Object>();
-    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
 
-    return null;
-  }
+        return response;
+        // end of my addition
+    }
+    @RequestMapping(value = "/unfollowFriend/{userName}/{friendUserName}", method = RequestMethod.PUT)
+    public @ResponseBody Map<String, Object> unfollowFriend(@PathVariable("userName") String userName,
+            @PathVariable("friendUserName") String friendUserName, HttpServletRequest request) {
 
-  @RequestMapping(value = "/likeSong/{userName}/{songId}", method = RequestMethod.PUT)
-  public @ResponseBody Map<String, Object> likeSong(@PathVariable("userName") String userName,
-      @PathVariable("songId") String songId, HttpServletRequest request) {
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
-    Map<String, Object> response = new HashMap<String, Object>();
-    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+        // my addition
+        DbQueryStatus dbQueryStatus = profileDriver.unfollowFriend(userName, friendUserName);
 
-    return null;
-  }
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
 
-  @RequestMapping(value = "/unlikeSong/{userName}/{songId}", method = RequestMethod.PUT)
-  public @ResponseBody Map<String, Object> unlikeSong(@PathVariable("userName") String userName,
-      @PathVariable("songId") String songId, HttpServletRequest request) {
+        return response;
+        // end of my addition
+    }
 
-    Map<String, Object> response = new HashMap<String, Object>();
-    response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+    @RequestMapping(value = "/likeSong/{userName}/{songId}", method = RequestMethod.PUT)
+    public @ResponseBody Map<String, Object> likeSong(@PathVariable("userName") String userName,
+            @PathVariable("songId") String songId, HttpServletRequest request) {
 
-    return null;
-  }
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+
+        // my addition
+        DbQueryStatus dbQueryStatus = playlistDriver.likeSong(userName, songId);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
+    }
+    @RequestMapping(value = "/unlikeSong/{userName}/{songId}", method = RequestMethod.PUT)
+    public @ResponseBody Map<String, Object> unlikeSong(@PathVariable("userName") String userName,
+            @PathVariable("songId") String songId, HttpServletRequest request) {
+
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("path", String.format("PUT %s", Utils.getUrl(request)));
+
+        // my addition
+        DbQueryStatus dbQueryStatus = playlistDriver.unlikeSong(userName, songId);
+
+        response.put("message", dbQueryStatus.getMessage());
+        response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
+            dbQueryStatus.getData());
+
+        return response;
+        // end of my addition
+    }
 
   @RequestMapping(value = "/deleteAllSongsFromDb/{songId}", method = RequestMethod.PUT)
   public @ResponseBody Map<String, Object> deleteAllSongsFromDb(
@@ -124,5 +169,4 @@ public class ProfileController {
 
     return response;
   }
-
 }
