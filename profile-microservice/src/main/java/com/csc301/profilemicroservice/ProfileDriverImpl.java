@@ -3,7 +3,6 @@ package com.csc301.profilemicroservice;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import org.json.JSONObject;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
@@ -228,6 +227,7 @@ public class ProfileDriverImpl implements ProfileDriver {
 
           Map<String, Object> params = new HashMap<String, Object>();
           params.put("username", userName);
+          String tempName;
 
           // check if user exist in the db
 
@@ -237,30 +237,37 @@ public class ProfileDriverImpl implements ProfileDriver {
           if (res1.hasNext()) {
 
             String query =
-                "MATCH (p:profile), (fp:profile), (s:song), ((p)-[r:follows]->(fp)), ((fp)-[r:includes]->(s)) WHERE p.userName = $username RETURN s";
+                "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username RETURN fp";
             StatementResult res = trans.run(query, params);
             // Map<String, Object> resultMap = res.next().fields().get(0).value().asMap();
-            HashMap<String, Object> returnMap = new HashMap<>();
-            ArrayList<Object> songs = new ArrayList<>();
+            HashMap<String, String> returnMap = new HashMap<>();
+            ArrayList<String> songs;
 
             while (res.hasNext()) {
-              songs.add(res.next().fields().get(0).value().asMap().get("songId"));
+              params = new HashMap<String, Object>();
+              songs = new ArrayList<String>();
+              tempName = res.next().fields().get(0).value().asMap().get("userName").toString();
+              params.put("username", tempName);
+              query = "MATCH (l:profile {userName:$username})\n" + "Match (z:playlist)\n"
+                  + "Where (l)-[:created]->(z)\n" + "Match (s:song)\n"
+                  + "Where (z)-[:includes]->(s)\n" + "Return(s)";
+              StatementResult res2 = trans.run(query, params);
+              while (res2.hasNext()) {
+                songs.add(res2.next().fields().get(0).value().asMap().get("songId").toString());
+              }
+              returnMap.put(tempName, songs.toString());
             }
-            returnMap.put("data", songs.toArray());
-            returnMap.put("status", "ok");
-            JSONObject json = new JSONObject(returnMap);
-            String response = json.toString();
 
             trans.success();
             session.close();
             DbQueryStatus ret = new DbQueryStatus("Success", DbQueryExecResult.QUERY_OK);
-            ret.setData(response);
+            ret.setData(returnMap);
 
             return ret;
 
           } else {
             return new DbQueryStatus("Error: Make sure the username entered is valid!",
-                DbQueryExecResult.QUERY_ERROR_GENERIC);
+                DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
           }
 
         } catch (Exception e) {
