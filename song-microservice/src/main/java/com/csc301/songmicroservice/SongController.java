@@ -119,8 +119,8 @@ public class SongController {
         DbQueryStatus dbQueryStatus = songDal.addSong(newSong);
 
         if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
-          HttpUrl.Builder urlBuilder =
-              HttpUrl.parse("http://localhost:3002" + "/addSong/" + id.toString()).newBuilder();
+          HttpUrl.Builder urlBuilder = HttpUrl
+              .parse("http://localhost:3002" + "/addSongProfile/" + id.toString()).newBuilder();
           String url = urlBuilder.build().toString();
           RequestBody body = RequestBody.create(new byte[0], null);
 
