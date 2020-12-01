@@ -90,39 +90,42 @@ public class ProfileController {
 
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         ObjectMapper dataMap = new ObjectMapper();
-        Map<String, Object> dataResult = dataMap.convertValue(dbQueryStatus, Map.class);
+        Map<String, Object> dataResult = dataMap.convertValue(dbQueryStatus.getData(), Map.class);
         HashMap<String, Object> returnMap = new HashMap<>();
-        Map<String, Object> responseMap;
         ArrayList<String> songs;
         for (String s : dataResult.keySet()) {
           songs = new ArrayList<>();
           String songString = dataResult.get(s).toString();
           String[] songList = songString.substring(1, songString.length() - 1).split(", ");
           for (String d : songList) {
-            HttpUrl.Builder urlBuilder =
-                HttpUrl.parse("http://localhost:3001" + "/getSongTitleFromId/" + d).newBuilder();
-            String url = urlBuilder.build().toString();
-            RequestBody body = RequestBody.create(new byte[0], null);
+            if (!(d.isEmpty())) {
+              HttpUrl.Builder urlBuilder =
+                  HttpUrl.parse("http://localhost:3001" + "/getSongTitleById/" + d).newBuilder();
+              String url = urlBuilder.build().toString();
 
-            Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
+              Request newRequest = new Request.Builder().url(url).method("GET", null).build();
 
-            Call call = client.newCall(newRequest);
-            Response responseFromMongo = call.execute();
-            responseMap = dataMap.convertValue(responseFromMongo, Map.class);
-            if (responseMap.get("status").toString().equals("OK")) {
-              songs.add(responseMap.get("data").toString());
+              Call call = client.newCall(newRequest);
+              Response responseFromMongo = call.execute();
+              String responseValue = responseFromMongo.body().string();
+              if (dataMap.readValue(responseValue, Map.class).get("status").toString()
+                  .equals("OK")) {
+                songs.add(dataMap.readValue(responseValue, Map.class).get("data").toString());
 
-            } else {
-              response.put("message", d + " was not found in MongoDb");
-              response =
-                  Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
-              return response;
+              } else {
+                response.put("message", d + " was not found in MongoDb");
+                response =
+                    Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
+                return response;
+              }
             }
           }
           returnMap.put(s, songs.toArray());
         }
-        response.put("message", "Retrieval Successful");
-        response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_OK, returnMap);
+        dbQueryStatus.setMessage("Retrieval Successful");
+        dbQueryStatus.setdbQueryExecResult(DbQueryExecResult.QUERY_OK);
+        dbQueryStatus.setData(returnMap);
+
       }
       response.put("message", dbQueryStatus.getMessage());
       response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
@@ -168,8 +171,8 @@ public class ProfileController {
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         HttpUrl.Builder urlBuilder = HttpUrl
             .parse("http://localhost:3001" + "/updateSongFavouritesCount/" + songId).newBuilder();
-        String url = urlBuilder.build().toString();
         urlBuilder.addQueryParameter("shouldDecrement", "false");
+        String url = urlBuilder.build().toString();
         RequestBody body = RequestBody.create(new byte[0], null);
 
         Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
@@ -206,8 +209,8 @@ public class ProfileController {
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         HttpUrl.Builder urlBuilder = HttpUrl
             .parse("http://localhost:3001" + "/updateSongFavouritesCount/" + songId).newBuilder();
-        String url = urlBuilder.build().toString();
         urlBuilder.addQueryParameter("shouldDecrement", "true");
+        String url = urlBuilder.build().toString();
         RequestBody body = RequestBody.create(new byte[0], null);
 
         Request newRequest = new Request.Builder().url(url).method("PUT", body).build();
