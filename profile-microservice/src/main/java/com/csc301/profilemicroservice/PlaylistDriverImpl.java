@@ -84,7 +84,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
       }
 
     } else {
-      return new DbQueryStatus("Could not like song! Make sure all parameters are filled.",
+      return new DbQueryStatus("Could not like song! Make sure all parameters are filled!",
           DbQueryExecResult.QUERY_ERROR_GENERIC);
     }
   }

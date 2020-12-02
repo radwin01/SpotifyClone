@@ -96,7 +96,7 @@ public class ProfileDriverImpl implements ProfileDriver {
   @Override
   public DbQueryStatus followFriend(String userName, String frndUserName) {
 
-    if (userName != "" && frndUserName != "") {
+    if (userName != "" && frndUserName != "" && (!(userName.equals(frndUserName)))) {
 
       try (Session session = ProfileMicroserviceApplication.driver.session()) {
 
@@ -151,7 +151,8 @@ public class ProfileDriverImpl implements ProfileDriver {
       }
 
     } else {
-      return new DbQueryStatus("Could not follow! Make sure all parameters are filled.",
+      return new DbQueryStatus(
+          "Could not follow! Make sure all parameters are filled and that you are not trying to follow yourself.",
           DbQueryExecResult.QUERY_ERROR_GENERIC);
     }
   }
