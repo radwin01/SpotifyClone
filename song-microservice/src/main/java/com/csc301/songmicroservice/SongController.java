@@ -36,11 +36,14 @@ public class SongController {
   public @ResponseBody Map<String, Object> getSongById(@PathVariable("songId") String songId,
       HttpServletRequest request) {
 
+    // Put path in response body
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("GET %s", Utils.getUrl(request)));
 
+    // Call implementation method to compute result
     DbQueryStatus dbQueryStatus = songDal.findSongById(songId);
 
+    // Return response of implementation method
     response.put("message", dbQueryStatus.getMessage());
     response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
         dbQueryStatus.getData());
@@ -53,11 +56,14 @@ public class SongController {
   public @ResponseBody Map<String, Object> getSongTitleById(@PathVariable("songId") String songId,
       HttpServletRequest request) {
 
+    // Put path in response body
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("GET %s", Utils.getUrl(request)));
 
+    // Call implementation method to compute result
     DbQueryStatus dbQueryStatus = songDal.getSongTitleById(songId);
 
+    // Return response of implementation method
     response.put("message", dbQueryStatus.getMessage());
     response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
         dbQueryStatus.getData());
@@ -70,11 +76,16 @@ public class SongController {
   public @ResponseBody Map<String, Object> deleteSongById(@PathVariable("songId") String songId,
       HttpServletRequest request) {
 
+    // Put path in response body
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("DELETE %s", Utils.getUrl(request)));
 
     try {
+
+      // Call implementation method to compute result
       DbQueryStatus dbQueryStatus = songDal.deleteSongById(songId);
+
+      // If implementation succeeds, send request to profile microservice to delete song
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         HttpUrl.Builder urlBuilder =
             HttpUrl.parse("http://localhost:3002" + "/deleteAllSongsFromDb/" + songId).newBuilder();
@@ -87,11 +98,14 @@ public class SongController {
         call.execute();
       }
 
+      // Return response of implementation method
       response.put("message", dbQueryStatus.getMessage());
       response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
           dbQueryStatus.getData());
 
     } catch (Exception e) {
+
+      // Catch failed call to profile microservice
       e.printStackTrace();
       response.put("message", "Failed to remove song from database");
       response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
@@ -105,19 +119,25 @@ public class SongController {
   public @ResponseBody Map<String, Object> addSong(@RequestParam Map<String, String> params,
       HttpServletRequest request) {
 
+    // Put path in response body
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("POST %s", Utils.getUrl(request)));
 
+    // Ensure all parameters exist
     if (params.containsKey("songName") && params.containsKey("songArtistFullName")
         && params.containsKey("songAlbum")) {
       try {
+
+        // Create the new song with a new ID
         Song newSong = new Song(params.get("songName"), params.get("songArtistFullName"),
             params.get("songAlbum"));
-
         ObjectId id = new ObjectId();
         newSong.setId(id);
+
+        // Call implementation method to compute result
         DbQueryStatus dbQueryStatus = songDal.addSong(newSong);
 
+        // If implementation succeeds, send request to profile microservice to add song
         if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
           HttpUrl.Builder urlBuilder = HttpUrl
               .parse("http://localhost:3002" + "/addSongProfile/" + id.toString()).newBuilder();
@@ -129,15 +149,19 @@ public class SongController {
           Call call = client.newCall(newRequest);
           call.execute();
         }
+
+        // Return response of implementation method
         response.put("message", dbQueryStatus.getMessage());
         response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
             dbQueryStatus.getData());
 
       } catch (Exception e) {
+        // Catch failed call to profile microservice
         response.put("message", "Failed to add song to database");
         response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
       }
     } else {
+      // Catch invalid parameter response
       response.put("message", "Invalid parameters given for addSong");
       response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
     }
@@ -151,9 +175,11 @@ public class SongController {
       @PathVariable("songId") String songId,
       @RequestParam("shouldDecrement") String shouldDecrement, HttpServletRequest request) {
 
+    // Put path in response body
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("data", String.format("PUT %s", Utils.getUrl(request)));
 
+    // Set decrement based on given shouldDecrement boolean (if valid)
     boolean value = false;
     if (shouldDecrement.equals("true")) {
       value = true;
@@ -164,8 +190,11 @@ public class SongController {
     } else {
       value = false;
     }
+
+    // Call implementation method to compute result
     DbQueryStatus dbQueryStatus = songDal.updateSongFavouritesCount(songId, value);
 
+    // Return response of implementation method
     response.put("message", dbQueryStatus.getMessage());
     response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
         dbQueryStatus.getData());
