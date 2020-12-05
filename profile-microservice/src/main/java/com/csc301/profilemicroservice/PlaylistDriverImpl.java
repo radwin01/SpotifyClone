@@ -26,6 +26,15 @@ public class PlaylistDriverImpl implements PlaylistDriver {
     }
   }
 
+  /**
+   * Method that allows a user to like a song.
+   * 
+   * @param userName the username of the profile
+   * @param songId the id of the song
+   * 
+   * @return the status of the query: OK if the user has successfully liked the song, ERROR_GENERIC
+   *         otherwise
+   */
   @Override
   public DbQueryStatus likeSong(String userName, String songId) {
 
@@ -60,10 +69,12 @@ public class PlaylistDriverImpl implements PlaylistDriver {
                   DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
             }
 
+            // if the query is correct, like song
             String realQuery =
                 "MATCH (pl:playlist), (s:song) WHERE pl.plName = $playlistName AND s.songId = $id CREATE (pl)-[:includes]->(s)";
             trans.run(realQuery, params);
           } else {
+            // if either the song or profile do not exist
             return new DbQueryStatus(
                 "Could not add song. Make sure the profile and song are both valid!",
                 DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -73,6 +84,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
           session.close();
           return new DbQueryStatus("Song has been successfully liked.", DbQueryExecResult.QUERY_OK);
 
+          // include error messages in the status if anything goes wrong in the process
         } catch (Exception e) {
           return new DbQueryStatus("Oh no! Something went wrong in liking this song.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -89,6 +101,15 @@ public class PlaylistDriverImpl implements PlaylistDriver {
     }
   }
 
+  /**
+   * Method that allows a user to unlike a song.
+   * 
+   * @param userName the username of the profile
+   * @param songId the id of the song
+   * 
+   * @return the status of the query: OK if the user has successfully unliked the song,
+   *         ERROR_GENERIC otherwise
+   */
   @Override
   public DbQueryStatus unlikeSong(String userName, String songId) {
 
@@ -128,6 +149,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
                 "MATCH (pl:playlist), (s:song), ((pl)-[r:includes]->(s)) WHERE pl.plName = $playlistName AND s.songId = $id DELETE r";
             trans.run(realQuery, params);
           } else {
+            // if either the song or profile do not exist
             return new DbQueryStatus(
                 "Could not unlike song. Make sure the profile and song are both valid!",
                 DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -138,6 +160,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
           return new DbQueryStatus("Song has been successfully unliked.",
               DbQueryExecResult.QUERY_OK);
 
+          // include error messages in the status if anything goes wrong in the process
         } catch (Exception e) {
           return new DbQueryStatus("Oh no! Something went wrong in unliking this song.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -154,11 +177,20 @@ public class PlaylistDriverImpl implements PlaylistDriver {
     }
   }
 
+  /**
+   * Method that deletes a song from the database.
+   * 
+   * @param songId the id of the song
+   * 
+   * @return the status of the query: OK if the song is successfully deleted, ERROR_GENERIC
+   *         otherwise
+   */
   @Override
   public DbQueryStatus deleteSongFromDb(String songId) {
     try (Session session = driver.session()) {
       boolean found = false;
       try (Transaction tx = session.beginTransaction()) {
+        // attempt to delete the song with the specified songId from the db
         String line = "MATCH (a:song {songId:$y})\n DETACH DELETE(a) RETURN(a)";
         HashMap<String, Object> params = new HashMap<>();
         params.put("y", songId);
@@ -172,15 +204,27 @@ public class PlaylistDriverImpl implements PlaylistDriver {
       if (found) {
         return new DbQueryStatus("Delete complete", DbQueryExecResult.QUERY_OK);
       }
-      return new DbQueryStatus("Song not found", DbQueryExecResult.QUERY_OK);
+      // if not found, include error message in the status
+      return new DbQueryStatus("Song not found", DbQueryExecResult.QUERY_ERROR_GENERIC);
+
+      // if anything goes wrong in the process, include error message in the status
     } catch (Exception e) {
       return new DbQueryStatus("Delete failed", DbQueryExecResult.QUERY_ERROR_GENERIC);
     }
   }
 
+  /**
+   * Method that adds a song to the database.
+   * 
+   * @param songId the id of the song
+   * 
+   * @return the status of the query: OK if the song was successfully added, ERROR_GENERIC otherwise
+   */
+  @Override
   public DbQueryStatus addSongProfile(String songId) {
     try (Session session = driver.session()) {
       try (Transaction tx = session.beginTransaction()) {
+        // attempt to add a song with the specified songId to the db
         String line = "MERGE (a:song {songId:$y})";
         HashMap<String, Object> params = new HashMap<>();
         params.put("y", songId);
@@ -190,6 +234,7 @@ public class PlaylistDriverImpl implements PlaylistDriver {
       session.close();
       return new DbQueryStatus("Add complete", DbQueryExecResult.QUERY_OK);
     } catch (Exception e) {
+      // if anything goes wrong in the process, include error message in status
       return new DbQueryStatus("Add failed", DbQueryExecResult.QUERY_ERROR_GENERIC);
     }
   }

@@ -35,10 +35,20 @@ public class ProfileDriverImpl implements ProfileDriver {
     }
   }
 
-
+  /**
+   * Method that creates a new profile in the database.
+   * 
+   * @param userName the username of the new profile
+   * @param fullName the full name of the user
+   * @param password the password of the new profile
+   * 
+   * @return the status of the query: OK if the user profile is successfully creates, ERROR_GENERIC
+   *         otherwise
+   */
   @Override
   public DbQueryStatus createUserProfile(String userName, String fullName, String password) {
 
+    // ensure all required fields are non empty
     if (userName != "" && fullName != "" && password != "") {
 
       try (Session session = ProfileMicroserviceApplication.driver.session()) {
@@ -61,6 +71,7 @@ public class ProfileDriverImpl implements ProfileDriver {
                 DbQueryExecResult.QUERY_ERROR_GENERIC);
           }
 
+          // create the profile and the user playlist if the query is correctly formatted
           String query2 =
               "CREATE (p:profile {userName: $username, fullName: $fullname, password: $password})";
           trans.run(query2, params);
@@ -76,6 +87,7 @@ public class ProfileDriverImpl implements ProfileDriver {
           session.close();
           return new DbQueryStatus("Profile successfully created!", DbQueryExecResult.QUERY_OK);
 
+          // include error message in query status if something goes wrong in the process
         } catch (Exception e) {
           return new DbQueryStatus("Oh no! Something went wrong in creating your profile.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -93,8 +105,18 @@ public class ProfileDriverImpl implements ProfileDriver {
   }
 
 
+  /**
+   * Method that allows a user to follow another user.
+   * 
+   * @param userName the username of the profile
+   * @param frndUserName the username of the friend's profile
+   * 
+   * @return the status of the query: OK if the user has successfully followed the friend,
+   *         ERROR_GENERIC otherwise
+   */
   @Override
   public DbQueryStatus followFriend(String userName, String frndUserName) {
+    // ensure all required fields are non empty
 
     if (userName != "" && frndUserName != "" && (!(userName.equals(frndUserName)))) {
 
@@ -127,6 +149,7 @@ public class ProfileDriverImpl implements ProfileDriver {
                   DbQueryExecResult.QUERY_ERROR_GENERIC);
             }
 
+            // if the query is properly formatted, follow the friend
             String realQuery =
                 "MATCH (p:profile), (fp:profile) WHERE p.userName = $username AND fp.userName = $friendUsername CREATE (p)-[:follows]->(fp)";
             trans.run(realQuery, params);
@@ -140,6 +163,7 @@ public class ProfileDriverImpl implements ProfileDriver {
           session.close();
           return new DbQueryStatus("You now follow this user.", DbQueryExecResult.QUERY_OK);
 
+          // include error message in query status if something goes wrong in the process
         } catch (Exception e) {
           return new DbQueryStatus("Oh no! Something went wrong in following this user.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -157,8 +181,18 @@ public class ProfileDriverImpl implements ProfileDriver {
     }
   }
 
+  /**
+   * Method that allows a user to unfollow another user.
+   * 
+   * @param userName the username of the profile
+   * @param frndUserName the username of the friend's profile
+   * 
+   * @return the status of the query: OK if the user has successfully unfollowed the friend,
+   *         ERROR_GENERIC otherwise
+   */
   @Override
   public DbQueryStatus unfollowFriend(String userName, String frndUserName) {
+    // ensure all required fields are non empty
     if (userName != "" && frndUserName != "") {
 
       try (Session session = ProfileMicroserviceApplication.driver.session()) {
@@ -190,6 +224,7 @@ public class ProfileDriverImpl implements ProfileDriver {
                   DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
             }
 
+            // if the query is properly formatted, follow the friend
             String realQuery =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username AND fp.userName = $friendUsername DELETE r";
             trans.run(realQuery, params);
@@ -202,6 +237,7 @@ public class ProfileDriverImpl implements ProfileDriver {
           session.close();
           return new DbQueryStatus("You have unfollowed this user.", DbQueryExecResult.QUERY_OK);
 
+          // include error message in query status if something goes wrong in the process
         } catch (Exception e) {
           return new DbQueryStatus("Oh no! Something went wrong in unfollowing this user.",
               DbQueryExecResult.QUERY_ERROR_GENERIC);
@@ -218,6 +254,14 @@ public class ProfileDriverImpl implements ProfileDriver {
     }
   }
 
+  /**
+   * Method that retrieves the songs of all friends' playlists.
+   * 
+   * @param userName the username of the profile
+   * 
+   * @return the status of the query: OK if the songs are able to be displayed, ERROR_GENERIC
+   *         otherwise
+   */
   @Override
   public DbQueryStatus getAllSongFriendsLike(String userName) {
     if (userName != "") {
@@ -237,6 +281,7 @@ public class ProfileDriverImpl implements ProfileDriver {
 
           if (res1.hasNext()) {
 
+            // if the user exists, get all friends of the user
             String query =
                 "MATCH (p:profile), (fp:profile), ((p)-[r:follows]->(fp)) WHERE p.userName = $username RETURN fp";
             StatementResult res = trans.run(query, params);
@@ -252,10 +297,12 @@ public class ProfileDriverImpl implements ProfileDriver {
               query = "MATCH (l:profile {userName:$username})\n" + "Match (z:playlist)\n"
                   + "Where (l)-[:created]->(z)\n" + "Match (s:song)\n"
                   + "Where (z)-[:includes]->(s)\n" + "Return(s)";
+              // get the songs from the friends playlist and add to to song list
               StatementResult res2 = trans.run(query, params);
               while (res2.hasNext()) {
                 songs.add(res2.next().fields().get(0).value().asMap().get("songId").toString());
               }
+              // associate each friend with their song list
               returnMap.put(tempName, songs.toString());
             }
 
@@ -266,6 +313,7 @@ public class ProfileDriverImpl implements ProfileDriver {
 
             return ret;
 
+            // include error message in the query status if anything goes wrong in the procees
           } else {
             return new DbQueryStatus("Error: Make sure the username entered is valid!",
                 DbQueryExecResult.QUERY_ERROR_NOT_FOUND);
