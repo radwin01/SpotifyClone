@@ -45,8 +45,11 @@ public class ProfileController {
 
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("POST %s", Utils.getUrl(request)));
+    
+    // check if all required params are present
     if (params.containsKey("userName") && params.containsKey("fullName")
         && params.containsKey("password")) {
+      // create the user using the parameter values
       DbQueryStatus dbQueryStatus = profileDriver.createUserProfile(params.get(KEY_USER_NAME),
           params.get(KEY_USER_FULLNAME), params.get(KEY_USER_PASSWORD));
 
@@ -54,6 +57,7 @@ public class ProfileController {
       response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
           dbQueryStatus.getData());
     } else {
+      // return a response saying that invalid parameters have been provided
       response.put("message", "Invalid parameters given for addProfile");
       response = Utils.setResponseStatus(response, DbQueryExecResult.QUERY_ERROR_GENERIC, null);
     }
@@ -70,6 +74,7 @@ public class ProfileController {
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
     // my addition
+    // call the followFriend function in driver
     DbQueryStatus dbQueryStatus = profileDriver.followFriend(userName, friendUserName);
     response.put("message", dbQueryStatus.getMessage());
     response = Utils.setResponseStatus(response, dbQueryStatus.getdbQueryExecResult(),
@@ -86,8 +91,10 @@ public class ProfileController {
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
     try {
+      // call the getAllSongsFriendsLike function in driver
       DbQueryStatus dbQueryStatus = profileDriver.getAllSongFriendsLike(userName);
-
+      
+      // if the function call for getting all songs is successfully executed
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         ObjectMapper dataMap = new ObjectMapper();
         Map<String, Object> dataResult = dataMap.convertValue(dbQueryStatus.getData(), Map.class);
@@ -148,6 +155,7 @@ public class ProfileController {
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
     // my addition
+    // call the unfollowFriend function in driver
     DbQueryStatus dbQueryStatus = profileDriver.unfollowFriend(userName, friendUserName);
 
     response.put("message", dbQueryStatus.getMessage());
@@ -166,8 +174,10 @@ public class ProfileController {
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
     try {
+      // call the likeSong function in driver
       DbQueryStatus dbQueryStatus = playlistDriver.likeSong(userName, songId);
-
+      
+      // if the function was called successfully, update the song count in the song
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         HttpUrl.Builder urlBuilder = HttpUrl
             .parse("http://localhost:3001" + "/updateSongFavouritesCount/" + songId).newBuilder();
@@ -204,8 +214,11 @@ public class ProfileController {
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
     try {
-      DbQueryStatus dbQueryStatus = playlistDriver.unlikeSong(userName, songId);
+      // call the unlikeSong function in driver
 
+      DbQueryStatus dbQueryStatus = playlistDriver.unlikeSong(userName, songId);
+      
+      // if the function was called successfully, update the song count in the song
       if (dbQueryStatus.getdbQueryExecResult().equals(DbQueryExecResult.QUERY_OK)) {
         HttpUrl.Builder urlBuilder = HttpUrl
             .parse("http://localhost:3001" + "/updateSongFavouritesCount/" + songId).newBuilder();
@@ -238,6 +251,7 @@ public class ProfileController {
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
 
+    // call the deleteSongFromDb function in driver
     DbQueryStatus dbQueryStatus = playlistDriver.deleteSongFromDb(songId);
 
     response.put("message", dbQueryStatus.getMessage());
@@ -253,7 +267,7 @@ public class ProfileController {
 
     Map<String, Object> response = new HashMap<String, Object>();
     response.put("path", String.format("PUT %s", Utils.getUrl(request)));
-
+    // call the addSongProfile function in driver
     DbQueryStatus dbQueryStatus = playlistDriver.addSongProfile(songId);
 
     response.put("message", dbQueryStatus.getMessage());
